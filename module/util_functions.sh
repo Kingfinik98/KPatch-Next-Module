@@ -259,18 +259,18 @@ flash_image() {
     *)    CMD1="cat '$1'";;
   esac
   if [ -b "$2" ]; then {
-      local img_sz=$(stat -c '%s' "$1")
-      local blk_sz=$(blockdev --getsize64 "$2")
-      local blk_bs=$(blockdev --getbsz "$2")
+      local img_sz=$(busybox stat -c '%s' "$1")
+      local blk_sz=$(busybox blockdev --getsize64 "$2")
+      local blk_bs=$(busybox blockdev --getbsz "$2")
       [ "$img_sz" -gt "$blk_sz" ] && return 1
-      blockdev --setrw "$2"
-      local blk_ro=$(blockdev --getro "$2")
+      busybox blockdev --setrw "$2"
+      local blk_ro=$(busybox blockdev --getro "$2")
       [ "$blk_ro" -eq 1 ] && return 2
-      eval "$CMD1" | dd of="$2" bs="$blk_bs" iflag=fullblock conv=notrunc,fsync 2>/dev/null
-      sync
+      eval "$CMD1" | busybox dd of="$2" bs="$blk_bs" iflag=fullblock conv=notrunc,fsync 2>/dev/null
+      busybox sync
   } elif [ -c "$2" ]; then {
       flash_eraseall "$2" >&2
-      eval "$CMD1" | nandwrite -p "$2" - >&2
+      eval "$CMD1" | busybox nandwrite -p "$2" - >&2
   } else {
       echo "- Not block or char device, storing image"
       eval "$CMD1" > "$2" 2>/dev/null

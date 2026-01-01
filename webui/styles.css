@@ -88,6 +88,7 @@ body {
     overflow-y: auto;
     padding: 16px 0;
     box-sizing: border-box;
+    scroll-behavior: smooth;
 }
 
 .page.active {
@@ -210,6 +211,14 @@ md-fab {
     position: absolute;
     bottom: 16px;
     right: 16px;
+    transform: scale(1);
+    opacity: 1;
+    transition: all 0.2s ease;
+}
+
+md-fab.hide {
+    transform: scale(0);
+    opacity: 0;
 }
 
 md-outlined-text-field {
@@ -227,7 +236,9 @@ md-outlined-text-field {
 
 .output-terminal {
     width: 100%;
-    font-size: 0.9em;
+    font-size: 0.8em;
+    font-family: monospace;
+    word-break: break-all;
 }
 
 .list-item {
@@ -357,5 +368,19 @@ md-dialog [slot="content"] {
 }
 
 [hidden] {
-    display: none;
+    display: none !important;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.keyboard-inset {
+    width: 100%;
+    padding-bottom: calc(40vh - 64px - 80px - var(--bottom-inset) - var(--top-inset));
+    transition: padding-bottom 0.2s ease;
+}
+
+.keyboard-inset.hide {
+    padding-bottom: 0;
 }

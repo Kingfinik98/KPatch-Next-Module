@@ -18,6 +18,7 @@ async function updateStatus() {
         notInstalled.setAttribute('hidden', '');
         working.removeAttribute('hidden');
         kpmModule.refreshKpmList();
+        document.querySelector('#superkey md-outlined-text-field').value = superkey;
     } else {
         document.getElementById('version').textContent = 'Not installed';
         notInstalled.removeAttribute('hidden');
@@ -57,6 +58,10 @@ function initInfo() {
         document.getElementById('fingerprint').textContent = info[2];
         document.getElementById('selinux').textContent = info[3];
     });
+}
+
+function reboot() {
+    exec('/system/bin/svc power reboot || /system/bin/reboot');
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -100,6 +105,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateBtnState('');
         updateStatus();
     }
+
+    // patch/unpatch
+    const patchTextField = document.querySelector('#superkey md-outlined-text-field');
+    document.getElementById('start').onclick = () => {
+        document.querySelector('.trailing-btn').style.display = 'none';
+        document.getElementById('patch-keyboard-inset').classList.add('hide');
+        patchModule.patch("patch");
+    }
+    document.getElementById('unpatch').onclick = () => {
+        document.querySelector('.trailing-btn').style.display = 'none';
+        patchModule.patch("unpatch");
+    }
+    patchTextField.addEventListener('focus', () => {
+        const pageContent = patchTextField.closest('.page-content');
+        pageContent.scrollTo({ top: pageContent.scrollHeight, behavior: 'smooth' });
+    });
+    document.getElementById('reboot-fab').onclick = () => reboot();
 
     // Kpm
     const controlDialog = document.getElementById('control-dialog');

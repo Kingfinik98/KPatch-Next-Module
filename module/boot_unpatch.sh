@@ -59,8 +59,6 @@ else
   exit 0
 fi
 
-
-
 if [ -f "new-boot.img" ]; then
   echo "- Flashing boot image"
   flash_image new-boot.img "$BOOTIMAGE"

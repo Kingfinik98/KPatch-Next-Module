@@ -12,7 +12,7 @@ function uInt2String(ver) {
 }
 
 async function getKpimgInfo() {
-    const result = await exec(`kptools -l -k ${modDir}/bin/kpimg`, { env: { PATH: `${modDir}/bin` }});
+    const result = await exec(`kptools -l -k ${modDir}/bin/kpimg`, { env: { PATH: `${modDir}/bin` } });
     if (import.meta.env.DEV) { // vite debug
         result.stdout = 'version=0xc06\ncompile_time=11:08:10 Dec 30 2025\nconfig=linux,release';
     }
@@ -42,10 +42,44 @@ function getKernelInfo() {
 async function getInstalledVersion() {
     if (superkey === '') return null;
     if (import.meta.env.DEV) return uInt2String('c06');
-    const working = await exec(`kpatch ${superkey} hello`, { env: { PATH: `${modDir}/bin` }});
-    if (working.stdout.trim() !== 'hello1158') return null;
-    const version = await exec(`kpatch ${superkey} kpver`, { env: { PATH: `${modDir}/bin` }});
+    const working = await exec(`kpatch ${superkey} hello`, { env: { PATH: `${modDir}/bin` } });
+    if (working.stdout.trim() === '') return null;
+    const version = await exec(`kpatch ${superkey} kpver`, { env: { PATH: `${modDir}/bin` } });
     return uInt2String(version.stdout.trim());
 }
 
-export { getKpimgInfo, getKernelInfo, getInstalledVersion }
+function patch(type) {
+    const superkey = document.querySelector('#superkey md-outlined-text-field').value;
+    const terminal = document.querySelector('#patch-terminal');
+    const script = type === "patch" ? "boot_patch.sh" : "boot_unpatch.sh";
+
+    exec(`
+        mkdir -p ${modDir}/tmp
+        rm -rf ${modDir}/tmp/*
+        cp ${modDir}/bin/kpimg ${modDir}/tmp/
+        . ${modDir}/util_functions.sh && find_boot_image
+    `).then((result) => {
+        const bootImageMatch = result.stdout.match(/BOOTIMAGE=(.*)/);
+        const bootImage = bootImageMatch ? bootImageMatch[1].trim() : null;
+        if (!bootImage) {
+            terminal.textContent = 'Error: Cannot find boot image!';
+            return;
+        }
+        const process = spawn(`sh`, [`${modDir}/${script}`, superkey, bootImage, 'true'], { cwd: `${modDir}/tmp` });
+        const pageContent = terminal.closest('.page-content');
+        process.stdout.on('data', (data) => {
+            terminal.innerHTML += `<div>${data}</div>`;
+            pageContent.scrollTo({ top: pageContent.scrollHeight, behavior: 'smooth' });
+        });
+        process.stderr.on('data', (data) => {
+            terminal.innerHTML += `<div>${data}</div>`;
+            pageContent.scrollTo({ top: pageContent.scrollHeight, behavior: 'smooth' });
+        });
+        process.on('exit', (code) => {
+            exec(`rm -rf ${modDir}/tmp`);
+            document.getElementById('reboot-fab').classList.remove('hide');
+        });
+    });
+}
+
+export { getKpimgInfo, getKernelInfo, getInstalledVersion, patch }
