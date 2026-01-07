@@ -25,11 +25,14 @@ const iconObserver = new IntersectionObserver((entries) => {
             iconObserver.unobserve(entry.target);
         }
     });
-}, { rootMargin: '200px' });
+}, { rootMargin: '100px' });
 
 async function refreshAppList() {
     const appList = document.getElementById('app-list');
-    appList.innerHTML = '<div class="empty-list">Loading...</div>';
+    const emptyMsg = document.getElementById('exclude-empty-msg');
+    appList.innerHTML = '';
+    emptyMsg.textContent = 'Loading...';
+    emptyMsg.classList.remove('hidden');
 
     try {
         if (import.meta.env.DEV) { // vite debug
@@ -47,9 +50,12 @@ async function refreshAppList() {
         }
         renderAppList();
     } catch (e) {
-        appList.innerHTML = `<div class="empty-list">Error loading apps: ${e.message}</div>`;
+        emptyMsg.textContent = `Error loading apps: ${e.message}`;
     }
 }
+
+let excludedApps = [];
+const appItemMap = new Map();
 
 async function saveExcludedList(excludedApps) {
     const header = 'pkg,exclude,allow,uid';
@@ -64,10 +70,9 @@ async function saveExcludedList(excludedApps) {
 
 async function renderAppList() {
     const appList = document.getElementById('app-list');
+    const emptyMsg = document.getElementById('exclude-empty-msg');
 
     try {
-        appList.innerHTML = '';
-        let excludedApps = [];
         let rawContent = '';
         if (import.meta.env.DEV) {
             rawContent = localStorage.getItem('kp-next_excluded_mock') || '';
@@ -78,7 +83,7 @@ async function renderAppList() {
                     rawContent = result.stdout.trim();
                 }
             } catch (e) {
-                console.warn('pacakge_config not available.')
+                console.warn('package_config not available.')
             }
         }
 
@@ -123,75 +128,103 @@ async function renderAppList() {
 
         const excludedPkgNames = new Set(excludedApps.map(app => app.packageName));
 
-        let filteredApps = allApps.filter(app => {
-            const label = app.appLabel || '';
-            const pkgName = app.packageName || '';
-            const matchesSearch = label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                pkgName.toLowerCase().includes(searchQuery.toLowerCase());
-            const isSystem = app.isSystem;
-            return matchesSearch && (showSystemApp || !isSystem);
-        });
-
-        filteredApps.sort((a, b) => {
+        const sortedApps = [...allApps].sort((a, b) => {
             const aExcluded = excludedPkgNames.has(a.packageName);
             const bExcluded = excludedPkgNames.has(b.packageName);
             if (aExcluded !== bExcluded) return aExcluded ? -1 : 1;
             return (a.appLabel || '').localeCompare(b.appLabel || '');
         });
 
-        document.getElementById('no-app').classList.toggle('hidden', filteredApps.length > 0);
+        emptyMsg.classList.add('hidden');
 
-        filteredApps.forEach(app => {
-            const item = document.createElement('label');
-            item.className = 'app-item';
-            const isExcluded = excludedPkgNames.has(app.packageName);
-            const userIdx = Math.floor(app.uid / 100000);
-            const extraTags = [];
-            if (userIdx > 0) extraTags.push(`USER ${userIdx}`);
-            if (app.isSystem) extraTags.push('SYSTEM');
-            const extraTagsHtml = extraTags.length > 0 ? `
-                <div class="tag-wrapper">
-                    ${extraTags.map(tag => `<div class="tag ${tag.toLowerCase()}">${tag}</div>`).join('')}
-                </div>
-            ` : '';
+        sortedApps.forEach(app => {
+            let item = appItemMap.get(app.packageName);
+            if (!item) {
+                item = document.createElement('label');
+                item.className = 'app-item';
+                const userIdx = Math.floor(app.uid / 100000);
+                const extraTags = [];
+                if (userIdx > 0) extraTags.push(`USER ${userIdx}`);
+                if (app.isSystem) extraTags.push('SYSTEM');
+                const extraTagsHtml = extraTags.length > 0 ? `
+                    <div class="tag-wrapper">
+                        ${extraTags.map(tag => `<div class="tag ${tag.toLowerCase()}">${tag}</div>`).join('')}
+                    </div>
+                ` : '';
 
-            item.innerHTML = `
-                <md-ripple></md-ripple>
-                <div class="icon-container">
-                    <div class="loader"></div>
-                    <img class="app-icon" data-package="${app.packageName || ''}" style="opacity: 0;">
-                </div>
-                <div class="app-info">
-                    <div class="app-label">${app.appLabel || 'Unknown'}</div>
-                    <div class="app-package">${app.packageName || 'Unknown'}</div>
-                    ${extraTagsHtml}
-                </div>
-                <md-switch class="app-switch" ${isExcluded ? 'selected' : ''}></md-switch>
-            `;
+                item.innerHTML = `
+                    <md-ripple></md-ripple>
+                    <div class="icon-container">
+                        <div class="loader"></div>
+                        <img class="app-icon" data-package="${app.packageName || ''}" style="opacity: 0;">
+                    </div>
+                    <div class="app-info">
+                        <div class="app-label">${app.appLabel || 'Unknown'}</div>
+                        <div class="app-package">${app.packageName || 'Unknown'}</div>
+                        ${extraTagsHtml}
+                    </div>
+                    <md-switch class="app-switch"></md-switch>
+                `;
 
-            const toggle = item.querySelector('md-switch');
-            let saveTimeout = null;
-            toggle.addEventListener('change', () => {
-                const realUid = app.uid % 100000;
-                if (toggle.selected) {
-                    if (!excludedApps.some(e => e.packageName === app.packageName)) {
-                        excludedApps.push({ packageName: app.packageName, uid: realUid });
+                const toggle = item.querySelector('md-switch');
+                let saveTimeout = null;
+                toggle.addEventListener('change', () => {
+                    const realUid = app.uid % 100000;
+                    if (toggle.selected) {
+                        if (!excludedApps.some(e => e.packageName === app.packageName)) {
+                            excludedApps.push({ packageName: app.packageName, uid: realUid });
+                        }
+                    } else {
+                        excludedApps = excludedApps.filter(e => e.packageName !== app.packageName);
                     }
-                } else {
-                    excludedApps = excludedApps.filter(e => e.packageName !== app.packageName);
-                }
-                if (saveTimeout) clearTimeout(saveTimeout);
-                saveTimeout = setTimeout(() => {
-                    saveExcludedList(excludedApps);
-                }, 500);
-                exec(`kpatch ${superkey} exclude_set ${realUid} ${toggle.selected ? 1 : 0}`, { env: { PATH: `${modDir}/bin` } });
-            });
+                    if (saveTimeout) clearTimeout(saveTimeout);
+                    saveTimeout = setTimeout(() => {
+                        saveExcludedList(excludedApps);
+                    }, 500);
+                    exec(`kpatch ${superkey} exclude_set ${realUid} ${toggle.selected ? 1 : 0}`, { env: { PATH: `${modDir}/bin` } });
+                });
+
+                appItemMap.set(app.packageName, item);
+                iconObserver.observe(item);
+            }
+
+            // Update state
+            const toggle = item.querySelector('md-switch');
+            toggle.selected = excludedPkgNames.has(app.packageName);
 
             appList.appendChild(item);
-            iconObserver.observe(item);
         });
+
+        applyFilters();
     } catch (e) {
-        appList.innerHTML = `<div class="empty-list">Error rendering apps: ${e.message}</div>`;
+        emptyMsg.textContent = `Error rendering apps: ${e.message}`;
+        emptyMsg.classList.remove('hidden');
+    }
+}
+
+function applyFilters() {
+    const query = searchQuery.toLowerCase();
+    let visibleCount = 0;
+
+    allApps.forEach(app => {
+        const item = appItemMap.get(app.packageName);
+        if (!item) return;
+
+        const matchesSearch = (app.appLabel || '').toLowerCase().includes(query) ||
+            (app.packageName || '').toLowerCase().includes(query);
+        const matchesSystem = showSystemApp || !app.isSystem;
+        const isVisible = matchesSearch && matchesSystem;
+
+        item.classList.toggle('search-hidden', !isVisible);
+        if (isVisible) visibleCount++;
+    });
+
+    const emptyMsg = document.getElementById('exclude-empty-msg');
+    if (visibleCount === 0) {
+        emptyMsg.textContent = 'No app found';
+        emptyMsg.classList.remove('hidden');
+    } else {
+        emptyMsg.classList.add('hidden');
     }
 }
 
@@ -211,20 +244,18 @@ function initExcludePage() {
         searchInput.focus();
     };
 
-    closeBtn.onclick = (e) => {
+    closeBtn.onclick = () => {
         searchBar.classList.remove('show');
         document.querySelectorAll('.search-bg').forEach(el => el.classList.remove('hide'));
         searchQuery = '';
         searchInput.blur();
-        if (e && e.isTrusted && searchInput.value !== '') {
-            searchInput.value = '';
-            renderAppList();
-        }
+        searchInput.value = '';
+        applyFilters();
     };
 
     searchInput.addEventListener('input', () => {
         searchQuery = searchInput.value;
-        renderAppList();
+        applyFilters();
     });
 
     menuBtn.onclick = () => menu.show();
@@ -232,7 +263,7 @@ function initExcludePage() {
     systemAppCheckbox.addEventListener('change', () => {
         showSystemApp = systemAppCheckbox.checked;
         localStorage.setItem('kp-next_show_system_app', showSystemApp);
-        renderAppList();
+        applyFilters();
     });
     if (localStorage.getItem('kp-next_show_system_app') === 'true') {
         showSystemApp = true;
@@ -240,6 +271,7 @@ function initExcludePage() {
     }
 
     document.getElementById('refresh-app-list').onclick = () => {
+        appItemMap.clear();
         refreshAppList();
     };
 
