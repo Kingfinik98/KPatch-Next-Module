@@ -43,6 +43,10 @@
     --md-sys-color-surface-container-low: var(--surfaceContainerLow, #F7F2FA);
     --md-sys-color-surface-container-high: var(--surfaceContainerHigh, #ECE6F0);
     --md-sys-color-surface-container-highest: var(--surfaceContainerHighest, #E6E0E9);
+
+    /* Extra */
+    --md-sys-color-primary-fixed: var(--md-sys-color-primary-container);
+    --md-sys-color-on-primary-fixed: var(--md-sys-color-on-primary-container);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -83,5 +87,9 @@
         --md-sys-color-surface-container-low: var(--surfaceContainerLow, #1D1B20);
         --md-sys-color-surface-container-high: var(--surfaceContainerHigh, #2B2930);
         --md-sys-color-surface-container-highest: var(--surfaceContainerHighest, #36343B);
+
+        /* Extra */
+        --md-sys-color-primary-fixed: var(--md-sys-color-on-primary-container);
+        --md-sys-color-on-primary-fixed: var(--md-sys-color-on-primary);
     }
 }

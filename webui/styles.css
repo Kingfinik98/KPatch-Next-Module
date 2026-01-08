@@ -30,25 +30,15 @@ body {
 }
 
 .splash-icon {
-    --icon-bg: var(--md-sys-color-primary);
-    --icon-fill: var(--md-sys-color-surface-container);
-
     border-radius: 50%;
-    background-color: var(--icon-bg);
+    background-color: var(--md-sys-color-primary-fixed);
     transition: opacity 0.05s ease;
     opacity: 0;
 
     svg {
         width: min(45vw, 240px);
         height: auto;
-        fill: var(--icon-fill);
-    }
-}
-
-@media (prefers-color-scheme: dark) {
-    .splash-icon {
-        --icon-bg: var(--md-sys-color-primary);
-        --icon-fill: var(--md-sys-color-surface-container);
+        fill: var(--md-sys-color-on-primary-fixed);
     }
 }
 
