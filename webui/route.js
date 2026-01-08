@@ -1,4 +1,5 @@
 import * as patchModule from './page/patch.js';
+import { getString } from './language.js';
 
 const backBtn = document.getElementById('back-btn');
 
@@ -70,25 +71,25 @@ export function navigateToHome() {
 }
 
 function navigateToKPM() {
-    switchPage('kpm-page', 'KPModule', 'KPM');
+    switchPage('kpm-page', getString('title_kpmodule'), 'KPM');
 }
 
 function navigateToExclude() {
-    switchPage('exclude-page', 'Exclude', 'exclude');
+    switchPage('exclude-page', getString('title_exclude'), 'exclude');
 }
 
 function navigateToSettings() {
-    switchPage('settings-page', 'Settings', 'settings');
+    switchPage('settings-page', getString('title_settings'), 'settings');
 }
 
 function navigateToPatch() {
-    preparePatchUI('Patch', false);
+    preparePatchUI(getString('title_patch'), false);
     patchModule.getKpimgInfo();
     patchModule.extractAndParseBootimg();
 }
 
 function navigateToUnPatch() {
-    preparePatchUI('UnPatch', true);
+    preparePatchUI(getString('title_unpatch'), true);
     patchModule.extractAndParseBootimg();
 }
 

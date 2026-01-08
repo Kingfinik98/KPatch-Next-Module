@@ -1,5 +1,6 @@
 import { listPackages, getPackagesInfo, exec } from 'kernelsu-alt';
 import { modDir, persistDir, superkey } from '../index.js';
+import { getString } from '../language.js';
 import fallbackIcon from '../icon.png';
 
 let allApps = [];
@@ -31,7 +32,7 @@ async function refreshAppList() {
     const appList = document.getElementById('app-list');
     const emptyMsg = document.getElementById('exclude-empty-msg');
     appList.innerHTML = '';
-    emptyMsg.textContent = 'Loading...';
+    emptyMsg.textContent = getString('status_loading');
     emptyMsg.classList.remove('hidden');
 
     try {
@@ -50,7 +51,7 @@ async function refreshAppList() {
         }
         renderAppList();
     } catch (e) {
-        emptyMsg.textContent = `Error loading apps: ${e.message}`;
+        emptyMsg.textContent = getString('msg_error_loading_apps', e.message);
     }
 }
 
@@ -144,11 +145,11 @@ async function renderAppList() {
                 item.className = 'app-item';
                 const userIdx = Math.floor(app.uid / 100000);
                 const extraTags = [];
-                if (userIdx > 0) extraTags.push(`USER ${userIdx}`);
-                if (app.isSystem) extraTags.push('SYSTEM');
+                if (userIdx > 0) extraTags.push(getString('info_user', userIdx));
+                if (app.isSystem) extraTags.push(getString('info_system'));
                 const extraTagsHtml = extraTags.length > 0 ? `
                     <div class="tag-wrapper">
-                        ${extraTags.map(tag => `<div class="tag ${tag.toLowerCase()}">${tag}</div>`).join('')}
+                        ${extraTags.map(tag => `<div class="tag ${app.isSystem ? 'system' : ''}">${tag}</div>`).join('')}
                     </div>
                 ` : '';
 
@@ -159,8 +160,8 @@ async function renderAppList() {
                         <img class="app-icon" data-package="${app.packageName || ''}" style="opacity: 0;">
                     </div>
                     <div class="app-info">
-                        <div class="app-label">${app.appLabel || 'Unknown'}</div>
-                        <div class="app-package">${app.packageName || 'Unknown'}</div>
+                        <div class="app-label">${app.appLabel || getString('msg_unknown')}</div>
+                        <div class="app-package">${app.packageName}</div>
                         ${extraTagsHtml}
                     </div>
                     <md-switch class="app-switch"></md-switch>
@@ -197,7 +198,7 @@ async function renderAppList() {
 
         applyFilters();
     } catch (e) {
-        emptyMsg.textContent = `Error rendering apps: ${e.message}`;
+        emptyMsg.textContent = getString('msg_error_rendering_apps', e.message);
         emptyMsg.classList.remove('hidden');
     }
 }
@@ -221,7 +222,7 @@ function applyFilters() {
 
     const emptyMsg = document.getElementById('exclude-empty-msg');
     if (visibleCount === 0) {
-        emptyMsg.textContent = 'No app found';
+        emptyMsg.textContent = getString('msg_no_app_found');
         emptyMsg.classList.remove('hidden');
     } else {
         emptyMsg.classList.add('hidden');

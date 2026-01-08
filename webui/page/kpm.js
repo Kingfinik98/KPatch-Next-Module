@@ -1,5 +1,6 @@
 import { exec, spawn, toast } from 'kernelsu-alt';
 import { modDir, persistDir, superkey, initInfo, MAX_CHUNK_SIZE, linkRedirect } from '../index.js';
+import { getString } from '../language.js';
 
 let allKpms = [];
 let searchQuery = '';
@@ -89,7 +90,7 @@ async function loadModule(modulePath) {
 
 async function refreshKpmList() {
     const emptyMsg = document.getElementById('kpm-empty-msg');
-    emptyMsg.textContent = 'Loading...';
+    emptyMsg.textContent = getString('status_loading');
     emptyMsg.classList.remove('hidden');
     allKpms = await getKpmList();
     renderKpmList();
@@ -109,8 +110,8 @@ async function renderKpmList() {
             item.innerHTML = `
                 <div class="module-card-header">
                     <div class="module-card-title">${module.name}</div>
-                    <div class="module-card-subtitle">${module.version}, Author ${module.author}</div>
-                    <div class="module-card-subtitle">Args: ${module.args ? module.args : '(null)'}</div>
+                    <div class="module-card-subtitle">${module.version}, ${getString('info_author', module.author)}</div>
+                    <div class="module-card-subtitle">${getString('info_args', module.args ? module.args : '(null)')}</div>
                 </div>
                 <div class="module-card-content">
                     <div class="module-card-text">${module.description}</div>
@@ -141,7 +142,7 @@ async function renderKpmList() {
             }
             item.querySelector('.unload').onclick = async () => {
                 const dialog = document.getElementById('unload-dialog');
-                dialog.querySelector('[slot=content]').innerHTML = `<div>Unload ${module.name} module?</div>`;
+                dialog.querySelector('[slot=content]').innerHTML = `<div>${getString('msg_unload_module', module.name)}</div>`;
                 dialog.querySelector('.cancel').onclick = () => dialog.close();
                 dialog.querySelector('.confirm').onclick = async () => {
                     await unloadModule(module.name);
@@ -177,7 +178,7 @@ function applyFilters() {
 
     const emptyMsg = document.getElementById('kpm-empty-msg');
     if (visibleCount === 0) {
-        emptyMsg.textContent = 'No module found';
+        emptyMsg.textContent = getString('msg_no_module_found');
         emptyMsg.classList.remove('hidden');
     } else {
         emptyMsg.classList.add('hidden');
@@ -279,7 +280,7 @@ async function handleFileUpload(accept, containerId, onSelected) {
         if (!file) return;
 
         if (accept && !file.name.endsWith(accept)) {
-            toast(`Please select a ${accept} file`);
+            toast(getString('msg_please_select_file', accept));
             return;
         }
 
@@ -290,7 +291,7 @@ async function handleFileUpload(accept, containerId, onSelected) {
             <div class="module-card-header flex-header">
                 <div class="header-info">
                     <div class="module-card-title">${file.name}</div>
-                    <div class="module-card-subtitle" id="upload-progress-text">Please wait...</div>
+                    <div class="module-card-subtitle" id="upload-progress-text">${getString('msg_please_wait')}</div>
                 </div>
                 <md-outlined-icon-button id="cancel-upload">
                     <md-icon><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 -960 960 960"><path d="m256-200-56-56 224-224-224-224 56-56 224 224 224-224 56 56-224 224 224 224-56 56-224-224-224 224Z"/></svg></md-icon>
@@ -315,16 +316,16 @@ async function handleFileUpload(accept, containerId, onSelected) {
             const p = Math.round(percent * 100);
             progressBar.value = percent;
             progressBar.indeterminate = false;
-            progressText.textContent = `Uploading... ${p}%`;
+            progressText.textContent = getString('msg_uploading', p + '%');
         };
 
         try {
             await onSelected(file, onProgress, abortController.signal);
         } catch (err) {
             if (err.name === 'AbortError') {
-                toast('Upload cancelled');
+                toast(getString('msg_upload_cancelled'));
             } else {
-                toast(`Error: ${err.message}`);
+                toast(getString('msg_error', err.message));
             }
         } finally {
             loadingCard.remove();
@@ -344,7 +345,7 @@ async function uploadAndLoadModule() {
             const info = await getKpmInfo(tmpPath);
             if (info && info.name) {
                 const dialog = document.getElementById('load-dialog');
-                dialog.querySelector('#module-name').textContent = info.name;
+                dialog.querySelector('#load-module-msg').textContent = getString('msg_module_loaded', info.name);
                 const checkbox = dialog.querySelector('md-checkbox');
                 checkbox.checked = false;
 
@@ -356,7 +357,7 @@ async function uploadAndLoadModule() {
                 dialog.querySelector('.confirm').onclick = async () => {
                     const success = await loadModule(`${modDir}/tmp/${file.name}`);
                     if (success) {
-                        toast(`Successfully loaded ${info.name}`);
+                        toast(getString('msg_successfully_loaded', info.name));
                         refreshKpmList();
                         if (!checkbox.checked) { // Save module to load on boot automatically
                             exec(`
@@ -365,7 +366,7 @@ async function uploadAndLoadModule() {
                             `);
                         }
                     } else {
-                        toast(`Failed to load module ${info.name}`);
+                        toast(getString('msg_failed_load_module', info.name));
                     }
                     exec(`rm -rf ${modDir}/tmp`);
                     dialog.close();
@@ -373,7 +374,7 @@ async function uploadAndLoadModule() {
 
                 dialog.show();
             } else {
-                toast(`Failed to get module info`);
+                toast(getString('msg_failed_get_module_info'));
                 exec(`rm -rf ${modDir}/tmp`);
             }
         } catch (e) {

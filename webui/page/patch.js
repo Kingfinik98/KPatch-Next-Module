@@ -1,6 +1,7 @@
 import { exec, spawn, toast } from 'kernelsu-alt';
 import { modDir, superkey } from '../index.js';
 import { handleFileUpload, uploadFile } from './kpm.js';
+import { getString } from '../language.js';
 
 function uInt2String(ver) {
     const val = typeof ver === 'string' ? parseInt(ver, 16) : ver;
@@ -53,9 +54,9 @@ let newExtras = [];
 
 async function getKpimgInfo() {
     if (kpimgInfo.version) {
-        document.getElementById('kpimg-version').textContent = "Version: " + uInt2String(kpimgInfo.version);
-        document.getElementById('kpimg-time').textContent = "Time: " + kpimgInfo.compile_time;
-        document.getElementById('kpimg-config').textContent = "Config: " + kpimgInfo.config;
+        document.getElementById('kpimg-version').textContent = getString('info_version', uInt2String(kpimgInfo.version));
+        document.getElementById('kpimg-time').textContent = getString('info_time', kpimgInfo.compile_time);
+        document.getElementById('kpimg-config').textContent = getString('info_config', kpimgInfo.config);
         document.getElementById('kpimg').classList.remove('animate-hidden');
         return;
     }
@@ -69,9 +70,9 @@ async function getKpimgInfo() {
         kpimgInfo.compile_time = ini.kpimg.compile_time;
         kpimgInfo.config = ini.kpimg.config;
 
-        document.getElementById('kpimg-version').textContent = "Version: " + uInt2String(ini.kpimg.version);
-        document.getElementById('kpimg-time').textContent = "Time: " + ini.kpimg.compile_time;
-        document.getElementById('kpimg-config').textContent = "Config: " + ini.kpimg.config;
+        document.getElementById('kpimg-version').textContent = getString('info_version', uInt2String(ini.kpimg.version));
+        document.getElementById('kpimg-time').textContent = getString('info_time', ini.kpimg.compile_time);
+        document.getElementById('kpimg-config').textContent = getString('info_config', ini.kpimg.config);
     }
     document.getElementById('kpimg').classList.remove('animate-hidden');
 }
@@ -99,7 +100,7 @@ async function parseBootimg() {
     });
 
     if (result.errno) {
-        toast("Failed to parse kernel:", result.stderr);
+        toast(getString('msg_failed_parse_kernel', result.stderr));
         return;
     }
 
@@ -167,8 +168,8 @@ async function extractAndParseBootimg() {
     });
 
     if (result.errno && !import.meta.env.DEV) {
-        toast("Boot extract failed", result.stderr);
-        document.getElementById('bootimg-device').textContent = "Failed to locate boot image";
+        toast(getString('msg_boot_extract_failed'), result.stderr);
+        document.getElementById('bootimg-device').textContent = getString('msg_failed_locate_boot');
         return;
     }
 
@@ -180,8 +181,8 @@ async function extractAndParseBootimg() {
     bootDev = matchBoot ? matchBoot[1].trim() : '';
 
     // Bootimg info card
-    document.getElementById('bootimg-slot').textContent = bootSlot ? `Slot: ${bootSlot}` : '';
-    document.getElementById('bootimg-device').textContent = bootDev ? `Device: ${bootDev}` : 'Device: Unknown';
+    document.getElementById('bootimg-slot').textContent = bootSlot ? getString('info_slot', bootSlot) : '';
+    document.getElementById('bootimg-device').textContent = bootDev ? getString('info_device', bootDev) : getString('info_device_unknown');
     document.getElementById('bootimg').classList.remove('animate-hidden');
 
     if (bootDev || import.meta.env.DEV) {
@@ -200,13 +201,13 @@ function renderKpmList() {
             <div class="module-card-header">
                 <div class="flex-header">
                     <div class="module-card-title">${item.name}</div>
-                    ${isNew ? '' : '<div class="tag">EMBEDDED</div>'}
+                    ${isNew ? '' : '<div class="tag">' + getString('info_embedded') + '</div>'}
                 </div>
-                <div class="module-card-subtitle">${item.version}, Author ${item.author || 'Unknown'}</div>
-                <div class="module-card-subtitle">Args: ${item.args ? item.args : '(null)'}</div>
+                <div class="module-card-subtitle">${item.version}, ${getString('info_author', item.author || getString('msg_unknown'))}</div>
+                <div class="module-card-subtitle">${getString('info_args', item.args ? item.args : '(null)')}</div>
             </div>
             <div class="module-card-content">
-                <div class="module-card-text">${item.description || 'No description'}</div>
+                <div class="module-card-text">${item.description || getString('info_no_description')}</div>
             </div>
             <md-divider></md-divider>
             <div class="module-card-actions">
@@ -293,7 +294,7 @@ async function embedKPM() {
         });
 
         if (result.errno) {
-            toast("Invalid KPM file");
+            toast(getString('msg_invalid_kpm_file'));
             return;
         }
 
@@ -313,7 +314,7 @@ async function embedKPM() {
             });
             renderKpmList();
         } else {
-            toast("Could not parse KPM info");
+            toast(getString('msg_could_not_parse_kpm'));
         }
     });
 }
@@ -328,7 +329,7 @@ function patch(type) {
     };
 
     if (!bootDev) {
-        terminal.textContent = 'Error: No boot image found.';
+        terminal.textContent = getString('msg_error_no_boot_image');
         return;
     }
 

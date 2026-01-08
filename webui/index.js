@@ -1,6 +1,7 @@
 import '@material/web/all.js';
 import { exec, toast } from 'kernelsu-alt';
 import { setupRoute, navigateToHome } from './route.js';
+import { getString, loadTranslations } from './language.js';
 import * as patchModule from './page/patch.js';
 import * as kpmModule from './page/kpm.js';
 import * as excludeModule from './page/exclude.js';
@@ -25,7 +26,7 @@ async function updateStatus() {
         document.querySelector('#superkey md-outlined-text-field').value = superkey;
         installedOnly.forEach(el => el.removeAttribute('hidden'));
     } else {
-        versionText.textContent = 'Not installed';
+        versionText.textContent = getString('status_not_installed');
         notInstalled.classList.remove('hidden');
         working.classList.add('hidden');
         installedOnly.forEach(el => el.setAttribute('hidden', ''));
@@ -97,12 +98,12 @@ function getMaxChunkSize() {
 }
 
 export function linkRedirect(link) {
-    toast("Redirecting to " + link);
+    toast(getString('msg_redirecting_to', link));
     setTimeout(() => {
         exec(`am start -a android.intent.action.VIEW -d ${link}`)
             .then(({ errno }) => {
                 if (errno !== 0) {
-                    toast("Failed to open link with exec");
+                    toast(getString('msg_failed_open_link'));
                     window.open(link, "_blank");
                 }
             });
@@ -115,6 +116,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (splash) setTimeout(() => splash.querySelector('.splash-icon').classList.add('show'), 20);
 
     setupRoute();
+
+    // language
+    const language = document.getElementById('language');
+    const languageDialog = document.getElementById('language-dialog');
+    language.onclick = () => languageDialog.show();
+    languageDialog.querySelector('.cancel').onclick = () => languageDialog.close();
 
     // visibility toggle for SuperKey text field
     document.querySelectorAll('.password-field').forEach(field => {
@@ -185,10 +192,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     updateBtnState(superkey);
     getMaxChunkSize();
+
+    await loadTranslations();
+    await Promise.all([updateStatus(), initInfo()]);
+
     excludeModule.initExcludePage();
     kpmModule.initKPMPage();
-
-    await Promise.all([updateStatus(), initInfo()]);
 
     // splash screen
     if (splash) {
