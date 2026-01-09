@@ -9,6 +9,12 @@ import * as excludeModule from './page/exclude.js';
 export const modDir = '/data/adb/modules/KPatch-Next';
 export const persistDir = '/data/adb/kp-next';
 
+const rehookMode = [
+    "disable",  // 0
+    "target",   // 1
+    "minimal"   // 2
+]
+
 export let superkey = localStorage.getItem('kp-next_superkey') || '';
 export let MAX_CHUNK_SIZE = 96 * 1024;
 
@@ -23,6 +29,7 @@ async function updateStatus() {
         notInstalled.classList.add('hidden');
         working.classList.remove('hidden');
         kpmModule.refreshKpmList();
+        initRehook();
         document.querySelector('#superkey md-outlined-text-field').value = superkey;
         installedOnly.forEach(el => el.removeAttribute('hidden'));
     } else {
@@ -88,6 +95,49 @@ async function reboot(reason = "") {
         await exec("/system/bin/input keyevent 26");
     }
     exec(`/system/bin/svc power reboot ${reason} || /system/bin/reboot ${reason}`);
+}
+
+async function initRehook() {
+    const rehook = document.getElementById('rehook');
+    const rehookMenu = rehook.querySelector('md-menu');
+    const mode = await updateRehookStatus();
+    if (mode) rehook.onclick = () => rehookMenu.open = !rehookMenu.open;
+    rehookMenu.querySelectorAll('md-menu-item').forEach((item, index) => {
+        item.onclick = () => {
+            setRehookMode(index);
+            rehook.click();
+        }
+    });
+}
+
+async function updateRehookStatus() {
+    const rehook = document.getElementById('rehook');
+    const rehookText = rehook.querySelector('.menu-text');
+    const rehookRipple = rehook.querySelector('md-ripple');
+
+    let modeName = 'target', modeId = null;
+
+    const result = await exec(`kpatch ${escapeShell(superkey)} rehook_status`, { env: { PATH: `${modDir}/bin` } });
+    const mode = result.stdout.split('\n').find(line => line.includes('mode: '));
+    if (mode) {
+        modeId = parseInt(mode.split(':')[1].trim());
+        modeName = rehookMode[modeId];
+    }
+    rehookText.textContent = getString('label_rehook_mode_' + modeName);
+    rehookText.classList.toggle('disabled', !mode);
+    rehookRipple.disabled = !mode;
+
+    return modeId !== null;
+}
+
+function setRehookMode(mode) {
+    exec(`kpatch ${escapeShell(superkey)} rehook ${mode}`, { env: { PATH: `${modDir}/bin` } }).then((result) => {
+        if (result.errno !== 0) {
+            toast(getString('msg_error', result.stderr));
+            return;
+        }
+        updateRehookStatus();
+    })
 }
 
 function getMaxChunkSize() {

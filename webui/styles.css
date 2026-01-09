@@ -421,6 +421,10 @@ md-outlined-text-field {
     color: var(--md-sys-color-outline);
 }
 
+.list-item-trailing {
+    position: relative;
+}
+
 .empty-list {
     height: 100%;
     width: 100%;
@@ -432,6 +436,16 @@ md-outlined-text-field {
 
 .empty-list.hidden {
     display: none;
+}
+
+.menu-text {
+    font-size: 0.9em;
+    color: var(--md-sys-color-primary);
+    user-select: none;
+}
+
+.menu-text.disabled {
+    color: var(--md-sys-color-on-surface-variant);
 }
 
 md-menu-item {
